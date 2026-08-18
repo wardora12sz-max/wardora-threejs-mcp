@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "WARDORA remote Three.js MCP server",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "latest",
     "express": "^5.1.0",
-    "threejs-devtools-mcp": "latest"
+    "zod": "latest"
   },
   "engines": {
     "node": "24.x"
