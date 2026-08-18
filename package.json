@@ -2,12 +2,16 @@
   "name": "wardora-threejs-mcp",
   "version": "1.0.0",
   "private": true,
-  "description": "WARDORA remote Three.js MCP server",
   "type": "module",
+  "description": "WARDORA remote Three.js MCP server",
   "scripts": {
-    "start": "npx -y threejs-devtools-mcp"
+    "start": "node server.js"
   },
   "dependencies": {
+    "express": "^5.1.0",
     "threejs-devtools-mcp": "latest"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }
