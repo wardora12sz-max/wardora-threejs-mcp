@@ -1,0 +1,13 @@
+{
+  "name": "wardora-threejs-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WARDORA remote Three.js MCP server",
+  "type": "module",
+  "scripts": {
+    "start": "npx -y threejs-devtools-mcp"
+  },
+  "dependencies": {
+    "threejs-devtools-mcp": "latest"
+  }
+}
