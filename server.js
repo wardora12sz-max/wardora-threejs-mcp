@@ -1,110 +1,92 @@
 import express from "express";
-import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { McpServer } from "@modelcontextprotocol/server";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import * as z from "zod/v4";
 
 const app = express();
-
 app.use(express.json());
+
+const server = new McpServer({
+  name: "wardora-threejs-mcp",
+  version: "1.0.0"
+});
+
+server.registerTool(
+  "threejs_status",
+  {
+    title: "Three.js Status",
+    description: "Check that the WARDORA Three.js MCP server is online.",
+    inputSchema: {}
+  },
+  async () => ({
+    content: [
+      {
+        type: "text",
+        text: "WARDORA Three.js MCP is online."
+      }
+    ]
+  })
+);
+
+server.registerTool(
+  "threejs_scene_plan",
+  {
+    title: "Three.js Scene Planner",
+    description: "Create a Three.js scene plan for a WARDORA perfume presentation.",
+    inputSchema: {
+      perfume: z.string(),
+      brand: z.string().optional(),
+      mood: z.string().optional()
+    }
+  },
+  async ({ perfume, brand, mood }) => ({
+    content: [
+      {
+        type: "text",
+        text:
+          `Create a premium Three.js presentation for ${perfume}` +
+          `${brand ? ` by ${brand}` : ""}. ` +
+          `Mood: ${mood || "luxury cinematic"}. ` +
+          "Use physically based materials, controlled lighting, depth, particles, camera animation and performant rendering."
+      }
+    ]
+  })
+);
+
+const transport = new NodeStreamableHTTPServerTransport({
+  sessionIdGenerator: () => randomUUID(),
+  enableJsonResponse: true
+});
+
+await server.connect(transport);
+
+app.all("/mcp", async (req, res) => {
+  try {
+    await transport.handleRequest(req, res, req.body);
+  } catch (error) {
+    console.error("MCP error:", error);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        jsonrpc: "2.0",
+        error: {
+          code: -32603,
+          message: "Internal MCP server error"
+        },
+        id: null
+      });
+    }
+  }
+});
 
 app.get("/", (_req, res) => {
   res.json({
     name: "WARDORA Three.js MCP",
     status: "online",
-    transport: "Streamable HTTP",
+    protocol: "MCP Streamable HTTP",
     endpoint: "/mcp"
   });
-});
-
-app.get("/mcp", (_req, res) => {
-  res.status(405).json({
-    jsonrpc: "2.0",
-    error: {
-      code: -32000,
-      message: "SSE stream not established. Use POST for MCP requests."
-    },
-    id: null
-  });
-});
-
-app.post("/mcp", async (req, res) => {
-  res.setHeader("Content-Type", "application/json");
-
-  const child = spawn(
-    "npx",
-    ["-y", "threejs-devtools-mcp"],
-    {
-      stdio: ["pipe", "pipe", "pipe"]
-    }
-  );
-
-  let stdout = "";
-  let stderr = "";
-  let finished = false;
-
-  const timeout = setTimeout(() => {
-    if (!finished) {
-      child.kill();
-
-      res.status(504).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32001,
-          message: "Three.js MCP process timed out"
-        },
-        id: req.body?.id ?? null
-      });
-    }
-  }, 25000);
-
-  child.stdout.on("data", (data) => {
-    stdout += data.toString();
-  });
-
-  child.stderr.on("data", (data) => {
-    stderr += data.toString();
-  });
-
-  child.on("close", (code) => {
-    finished = true;
-    clearTimeout(timeout);
-
-    if (res.headersSent) return;
-
-    if (code !== 0) {
-      return res.status(500).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32002,
-          message: "Three.js MCP process failed",
-          data: stderr
-        },
-        id: req.body?.id ?? null
-      });
-    }
-
-    try {
-      const lines = stdout
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      const lastMessage = lines[lines.length - 1];
-
-      res.json(JSON.parse(lastMessage));
-    } catch {
-      res.status(500).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32003,
-          message: "Invalid response from Three.js MCP",
-          data: stdout
-        },
-        id: req.body?.id ?? null
-      });
-    }
-  });
-
-  child.stdin.write(JSON.stringify(req.body) + "\n");
-  child.stdin.end();
 });
 
 export default app;
