@@ -2,6 +2,7 @@ import express from "express";
 import { spawn } from "node:child_process";
 
 const app = express();
+
 app.use(express.json());
 
 app.get("/", (_req, res) => {
@@ -47,8 +48,4 @@ app.post("/mcp", async (req, res) => {
   child.stdin.end();
 });
 
-const port = process.env.PORT || 3000;
-
-app.listen(port, () => {
-  console.log(`WARDORA Three.js MCP listening on port ${port}`);
-});
+export default app;
